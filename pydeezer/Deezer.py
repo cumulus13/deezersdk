@@ -267,7 +267,10 @@ class Deezer:
         }
 
         if "genre_id" in album_data:
-            tags["genre"] = album_data["genres"]["data"][0]["name"]
+            if album_data["genres"]["data"]:
+                tags["genre"] = album_data["genres"]["data"][0]["name"]
+            else:
+                tags["genre"] = ""
 
         if "author" in track["SNG_CONTRIBUTORS"]:
             _authors = track["SNG_CONTRIBUTORS"]["author"]
