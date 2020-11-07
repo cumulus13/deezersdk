@@ -24,6 +24,8 @@ lib64/
 parts/
 sdist/
 var/
+traceback.log
+*.pyc
 wheels/
 pip-wheel-metadata/
 share/python-wheels/

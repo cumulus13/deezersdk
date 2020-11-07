@@ -9,7 +9,7 @@ setuptools.setup(
     version=version,
     author="LICFACE",
     author_email="licfae@yahoo.com",
-    description="Download MP3 or FLAC from Deezer.com by Artist Name (for now just artist name)",
+    description="A package to search and download musics on Deezer, Download MP3 or FLAC from Deezer.com by Artist Name (cli)",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cumulus13/deezersdk",

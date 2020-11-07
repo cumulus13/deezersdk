@@ -1,51 +1,26 @@
-# PyDeezer
+# DeezerSDK
 
-A package to search and download musics on [Deezer](https://www.deezer.com/en/).
+A package to search and download musics on [Deezer](https://www.deezer.com/en/), Download MP3 or FLAC from Deezer.com by Artist Name (cli).
 
 ## Installation
 
 ```bash
-pip install py-deezer
+pip install deezersdk
 ```
 
 ## Usage as a CLI
 
 ```bash
-Usage: pydeezer [OPTIONS] COMMAND [ARGS]...
+usage: deez.py [-h] [-p DOWNLOAD_PATH] [-t TYPE] query
 
-  PyDeezer CLI
+positional arguments:
+  query                 Search For Artist
 
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  download  Download tracks
-```
-
-#### Commands
-
-```bash
-Usage: pydeezer download [OPTIONS]
-
-  Download tracks
-
-Options:
-  -a, --arl TEXT                  Used to be able to login to Deezer. Check
-                                  the docs on how to get one.
-
-  --media-type [Track|Album|Playlist|Artist]
-                                  Sets the media type and how it searches the
-                                  api.
-
-  -d, --download-dir DIRECTORY    Sets the directory on where the tracks are
-                                  to be saved.
-
-  -q, --quality [MP3_128|MP3_256|MP3_320|FLAC]
-                                  Sets the quality of the tracks. if the
-                                  provided quality is not supported, the
-                                  default quality of the track will be used.
-
-  --help                          Show this message and exit.
+optional arguments:
+  -h, --help            show this help message and exit
+  -p DOWNLOAD_PATH, --download-path DOWNLOAD_PATH
+                        Save download to
+  -t TYPE, --type TYPE  mp3 or flac, default = mp3
 ```
 
 ## Usage as a package
@@ -53,7 +28,7 @@ Options:
 #### Logging In
 
 ```python
-from pydeezer import Deezer
+from deezersdk import Deezer
 
 arl = "edit_this"
 deezer = Deezer(arl=arl)
@@ -86,7 +61,7 @@ playlist_search_results = deezer.search_playlists("top", index=2)
 # Some login code here
 
 # Some download stuffs
-from pydeezer.constants import track_formats
+from deezersdk.constants import track_formats
 
 download_dir = "~/Downloads/"
 
