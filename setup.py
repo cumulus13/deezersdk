@@ -1,8 +1,31 @@
 import setuptools
 from __version__ import version
-
+import sys
 with open("README.md", "r") as f:
     long_description = f.read()
+
+requirements = [
+    "requests",
+    "cryptography",
+    "mutagen",
+    "tqdm",
+    "click",
+    "pyinquirer",
+    'configset',
+    'bitmath',
+    'make_colors',
+    'pydebugger',
+    'pywget',
+]
+
+if sys.platform == 'win32':
+    requirements.append('pywin32>=223')
+    requirements.append('dcmd')
+    requirements.append('clipboard')
+    requirements.append('cefpython3')
+if 'linux' in sys.platform:
+    requirements.append('clipboard')
+    requirements.append('cefpython3')
 
 setuptools.setup(
     name="deezersdk",
@@ -14,23 +37,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cumulus13/deezersdk",
     packages=setuptools.find_packages(),
-    install_requires=[
-        "requests",
-        "cryptography",
-        "mutagen",
-        "tqdm",
-        "click",
-        "pyinquirer",
-        'configset',
-        'clipboard',
-        'bitmath',
-        'make_colors',
-        'pydebugger',
-        'pywget',
-        'pywin32>=223',
-        'dcmd',
-        'cefpython3'
-    ],
+    install_requires=requirements,
     license="GNU GPL v3",
     classifiers=[
         "Programming Language :: Python :: 3",
