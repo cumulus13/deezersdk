@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
+#!d:/virtualenv/py-deezer/Scripts/python.exe
 
 from __future__ import print_function
 
-from . import Deezer
-from .constants import track_formats
+from pydeezer import Deezer
+from pydeezer.constants import track_formats
 import os
 import sys
+import re
 if sys.platform == 'win32':
     import win32api, win32con, win32gui, win32console
     from dcmd import dcmd
@@ -19,7 +20,7 @@ from make_colors import make_colors
 from pydebugger.debug import debug
 from pywget import wget
 from datetime import datetime
-from xnotify import notify
+from xnotify.notify import notify
 import shutil
 try:
     from pause import pause
@@ -92,6 +93,8 @@ class Deez(object):
         debug(ARL = ARL)
         deezer = Deezer(arl = ARL)
     config = configset()
+    CD = None
+    LOGO = os.path.join(os.path.dirname(__file__), 'logo.png')
     if not ARL:
         ALR = config.get_config('AUTH', 'arl', "4659ecf4e9e46931714cbf470afd5242fdf97505c7f0e89aecc9442caa056064c9a538693acb37292467d76a2039e4e6b38e0d118fe018625d5252f38db315c46bf17d45cd1442acaf15006d9ef9d42aaf385a71c937b6fafa342bb2bb0dfa6e")
 
@@ -192,7 +195,7 @@ class Deez(object):
         else:
             print(make_colors("Invalid ftype !", 'lw' ,'lr'))
             return False
-
+        debug(result = result)
         return result
     
     @classmethod
@@ -206,9 +209,15 @@ class Deez(object):
 
     @classmethod
     def download(cls, tracks, numbers = None, fformat = 'mp3', download_path = None):
-        os.environ.update({'DEBUG':'1'})
+        # os.environ.update({'DEBUG':'1'})
+        download_path0 = download_path
+        if not os.path.isdir(download_path):
+            os.makedirs(download_path)
+        print(make_colors("SAVE TO", 'lw', 'bl') + ": " + make_colors(download_path, 'lw', 'm'))
         if not numbers:
-            numbers = list(range(len(tracks) + 1))[0:]
+            numbers = list(range(len(tracks) + 1))[1:]
+            debug(numbers = numbers)
+            
         for i in numbers:
             debug(i = i)
             try:
@@ -233,17 +242,28 @@ class Deez(object):
             debug(tags_separated_by_comma = tags_separated_by_comma)
             #url_download = cls.deezer.get_track_download_url(track, quality=track_formats.MP3_320)
             #debug(url_download = url_download[0])
-            if int(tags_separated_by_comma.get('discnumber')) > 1:
-                if not os.path.isdir(os.path.join(download_path, 'CD01')):
-                    os.makedirs(os.path.join(download_path, 'CD01'))
-                    list_files = list(filter(lambda k: k.endswith("." + fformat), os.listdir(download_path)))
-                    for i in list_files:
-                        if os.path.isfile(os.path.join(os.path.join(download_path, 'CD01'), i)):
-                            os.remove(os.path.join(os.path.join(download_path, 'CD01'), i))
-                        shutil.move(os.path.join(download_path, i), os.path.join(download_path, 'CD01'))
-                if not os.path.isdir(os.path.join(download_path, 'CD0' + str(tags_separated_by_comma.get('discnumber')))):
-                    os.makedirs(os.path.join(download_path, 'CD0' + str(tags_separated_by_comma.get('discnumber'))))
-                download_path = os.path.join(download_path, 'CD0' + str(tags_separated_by_comma.get('discnumber')))
+            discnumber = tags_separated_by_comma.get('discnumber')
+            if not cls.CD == discnumber:
+                download_path = download_path0
+                if int(discnumber) > 1:
+                    if not os.path.isdir(os.path.join(download_path, 'CD01')) and not cls.CD:
+                        print(make_colors("create directory:", 'lw', 'lr') + " " + make_colors(os.path.join(download_path, 'CD01'), 'lw', 'bl'))
+                        os.makedirs(os.path.join(download_path, 'CD01'))
+                        list_files_mp3 = list(filter(lambda k: k.endswith("." + fformat), os.listdir(download_path)))
+                        list_files_lrc = list(filter(lambda k: k.endswith(".lrc"), os.listdir(download_path)))
+                        for fl in list_files_mp3:
+                            if os.path.isfile(os.path.join(os.path.join(download_path, 'CD01'), fl)):
+                                os.remove(os.path.join(os.path.join(download_path, 'CD01'), fl))
+                            shutil.move(os.path.join(download_path, fl), os.path.join(download_path, 'CD01'))
+                        for fl in list_files_lrc:
+                            if os.path.isfile(os.path.join(os.path.join(download_path, 'CD01'), fl)):
+                                os.remove(os.path.join(os.path.join(download_path, 'CD01'), fl))
+                            shutil.move(os.path.join(download_path, fl), os.path.join(download_path, 'CD01'))
+                    if not os.path.isdir(os.path.join(download_path, 'CD0' + str(discnumber))):
+                        print(make_colors("create directory:", 'lw', 'lr') + " " + make_colors(os.path.join(download_path, 'CD0' + str(discnumber)), 'lw', 'bl'))
+                        os.makedirs(os.path.join(download_path, 'CD0' + str(discnumber)))
+                    download_path = os.path.join(download_path, 'CD0' + str(discnumber))
+                    cls.CD = discnumber
 
                 
             name = cls.format_number(tracks[int(i) - 1].get('TRACK_NUMBER'), len(tracks)) + ". " + tracks[int(i) - 1].get('SNG_TITLE')# + ".mp3"
@@ -267,7 +287,7 @@ class Deez(object):
                         pass
     @classmethod
     def split_number(cls, x):
-        debug(x = x, debug = True)
+        debug(x = x)
         fr, to = x.split("-")
         fr = fr.strip()
         to = to.strip()
@@ -275,12 +295,73 @@ class Deez(object):
         return track_number
 
     @classmethod
+    def create_download_path(cls, id, download_path):
+        cover_name = 'Cover'
+        poster_name = 'Poster'
+        
+        while 1:
+            try:
+                album_detail = cls.deezer.get_album(id)
+                break
+            except:
+                pass
+        while 1:
+            try:
+                cover_data = cls.deezer.get_album_poster(album_detail, 1200)
+                break
+            except:
+                pass
+        artist_data = album_detail.get('artist')
+        artist = artist_data.get('name')
+        while 1:
+            try:
+                artist_picture_data = cls.deezer.get_artist_poster(cls.deezer.get_artist(artist_data.get('id')), 1000)
+                break
+            except:
+                pass
+        release_date = album_detail.get('release_date')
+        release_year = datetime.strptime(release_date, '%Y-%m-%d').year
+        
+        if not os.path.isdir(os.path.join(download_path, artist)):
+            os.makedirs(os.path.join(download_path, artist))
+        download_path = os.path.join(download_path, artist)
+        # folder_name = artist + " - " + album_detail.get('title') + " (" + str(release_year) + ")"
+        folder_name = "(" + str(release_year) + ") " + album_detail.get('title')
+        folder_name = re.sub("\: ", " - ", folder_name)
+        folder_name = re.sub("\?|\*", " ", folder_name)
+        folder_name = re.sub("\:", "", folder_name)
+        download_path = os.path.join(download_path, folder_name)
+        
+        if not os.path.isdir(download_path):
+            try:
+                os.makedirs(download_path)
+            except:
+                pass
+            
+        cover = cover_name + "." + cover_data.get('ext')
+        cover = os.path.join(download_path, cover)
+        poster = poster_name + "." + cover_data.get('ext')
+        poster = os.path.join(download_path, poster)
+        artist_pic = "Artist" + "." + artist_picture_data.get('ext')
+        artist_pic = os.path.join(download_path, artist_pic)
+        #print("Cover      =", cover)
+        #print("Artist Pic =", artist_pic)
+        
+        with open(cover, 'wb') as cover_file:
+            cover_file.write(cover_data.get('image'))
+        with open(poster, 'wb') as poster_file:
+            poster_file.write(cover_data.get('image'))
+        with open(artist_pic, 'wb') as artist_pic_file:
+            artist_pic_file.write(artist_picture_data.get('image'))
+
+        return download_path
+
+    @classmethod
     def download_interactive(cls, query, download_path = None, ftype='artist', fformat='mp3'):
         result = cls.find(query, ftype)
         if not download_path:
             download_path = os.getcwd()
-        cover_name = 'Cover'
-        poster_name = 'Poster'
+        download_path0 = download_path
         
         if result:
             n = 1
@@ -317,6 +398,7 @@ class Deez(object):
                             album_artist_name = make_colors("{0} album".format(d.get('ART_NAME')), 'b', 'y')
                         print(cls.format_number(n, len(disco)) +  ". " + make_colors(d.get('ALB_TITLE'), 'lw', 'bl') + " / " + album_artist_name + " [" + make_colors(d.get('DIGITAL_RELEASE_DATE'), 'lr', 'lw') + "]")
                         n += 1
+                    notify('Deez', 'Deez', 'ready to select album', 'Ready to Select Album !', icon=cls.LOGO, direct_run = True)
                     q1 = raw_input(make_colors("Select Number:", 'lw', 'm') + " ")
                     if q1:
                         q1 = str(q1).strip()
@@ -324,80 +406,28 @@ class Deez(object):
                         if int(q1) <= len(disco):
                             n = 1
                             id = disco[int(q1) - 1].get('ALB_ID')
-                            while 1:
-                                try:
-                                    album_detail = cls.deezer.get_album(id)
-                                    break
-                                except:
-                                    pass
-                            while 1:
-                                try:
-                                    cover_data = cls.deezer.get_album_poster(album_detail, 1200)
-                                    break
-                                except:
-                                    pass
-                            artist_data = album_detail.get('artist')
-                            artist = artist_data.get('name')
-                            while 1:
-                                try:
-                                    artist_picture_data = cls.deezer.get_artist_poster(cls.deezer.get_artist(artist_data.get('id')), 1000)
-                                    break
-                                except:
-                                    pass
-                            release_date = album_detail.get('release_date')
-                            release_year = datetime.strptime(release_date, '%Y-%m-%d').year
-                            
-                            folder_name = artist + " - " + album_detail.get('title') + " (" + str(release_year) + ")"
-                            download_path = os.path.join(download_path, folder_name)
-                            
-                            if not os.path.isdir(download_path):
-                                try:
-                                    os.makedirs(download_path)
-                                except:
-                                    pass
-                                
-                            cover = cover_name + "." + cover_data.get('ext')
-                            cover = os.path.join(download_path, cover)
-                            poster = poster_name + "." + cover_data.get('ext')
-                            poster = os.path.join(download_path, poster)
-                            artist_pic = "Artist" + "." + artist_picture_data.get('ext')
-                            artist_pic = os.path.join(download_path, artist_pic)
-                            #print("Cover      =", cover)
-                            #print("Artist Pic =", artist_pic)
-                            
-                            with open(cover, 'wb') as cover_file:
-                                cover_file.write(cover_data.get('image'))
-                            with open(poster, 'wb') as poster_file:
-                                poster_file.write(cover_data.get('image'))
-                            with open(artist_pic, 'wb') as artist_pic_file:
-                                artist_pic_file.write(artist_picture_data.get('image'))                            
+                                                        
                             while 1:
                                 try:
                                     tracks = cls.deezer.get_album_tracks(id)
                                     break
                                 except:
                                     pass
+                            nt = 1
                             for track in tracks:
                                 if fformat == 'flac':
-                                    print(make_colors(cls.format_number(track.get('TRACK_NUMBER'), len(
-                                        tracks)) + "/" + cls.format_number(track.get('DISK_NUMBER'), len(
-                                            tracks)), 'lw', 'bl') + ". " + make_colors(track.get('SNG_TITLE'), 'bl', 'ly') + " [" + make_colors(str("%0.2f"%(int(track.get('DURATION')) / 60) + " minutes"), 'lr', 'lw')  + "/" + make_colors(str("%0.2f"%(bitmath.Byte(int(track.get('FILESIZE_FLAC'))).MB)) + " mb", 'lw', 'm') + "]")
+                                    print(make_colors(cls.format_number(str(nt), len(tracks)), 'lc') + " " + make_colors(cls.format_number(track.get('TRACK_NUMBER'), len(tracks)) + "/" + cls.format_number(track.get('DISK_NUMBER'), len(tracks)), 'lw', 'bl') + ". " + make_colors(track.get('SNG_TITLE'), 'bl', 'ly') + " [" + make_colors(str("%0.2f"%(int(track.get('DURATION')) / 60) + " minutes"), 'lr', 'lw')  + "/" + make_colors(str("%0.2f"%(bitmath.Byte(int(track.get('FILESIZE_FLAC'))).MB)) + " mb", 'lw', 'm') + "]")
                                 else:
-                                    print(make_colors(cls.format_number(track.get('TRACK_NUMBER'), len(
-                                        tracks)) + "/" + cls.format_number(track.get('DISK_NUMBER'), len(
-                                            tracks)), 'lw', 'bl') + ". " + make_colors(track.get('SNG_TITLE'), 'bl', 'ly') + " [" + make_colors(str("%0.2f"%(int(track.get('DURATION')) / 60) + " minutes"), 'lr', 'lw')  + "/" + make_colors(str("%0.2f"%(bitmath.Byte(int(track.get('FILESIZE'))).MB)) + " mb", 'lw', 'm') + "]")
-                                    n += 1
+                                    print(make_colors(cls.format_number(str(nt), len(tracks)), 'lc') + " " + make_colors(cls.format_number(track.get('TRACK_NUMBER'), len(tracks)) + "/" + cls.format_number(track.get('DISK_NUMBER'), len(tracks)), 'lw', 'bl') + ". " + make_colors(track.get('SNG_TITLE'), 'bl', 'ly') + " [" + make_colors(str("%0.2f"%(int(track.get('DURATION')) / 60) + " minutes"), 'lr', 'lw')  + "/" + make_colors(str("%0.2f"%(bitmath.Byte(int(track.get('FILESIZE'))).MB)) + " mb", 'lw', 'm') + "]")
+                                    nt += 1
+                        notify('Deez', 'Deez', 'ready to download album', 'Ready to Download Album !', icon=cls.LOGO, direct_run = True)
                         q2 = raw_input(make_colors("Select Number to download [a/all = download all]:", 'lw', 'm') + " ")
                         if q2:
                             q2 = str(q2).strip()
-                        while 1:
-                            try:
-                                tracks = cls.deezer.get_album_tracks(id)
-                                break
-                            except:
-                                pass
                         debug(tracks = tracks)
                         debug(q2 = q2)
+                        if q2:
+                            download_path = cls.create_download_path(id, download_path)
                         if q2 and q2 == 'all' or q2 == 'a':
                             cls.download(tracks, fformat = fformat, download_path = download_path)
 
@@ -420,14 +450,71 @@ class Deez(object):
 
                         else:
                             # track_id = tracks[int(q2) - 1].get('SNG_ID')
-                            if q2:
+                            if q2 and str(q2).isdigit():
                                 cls.download(tracks, [int(q2)], fformat, download_path)
-                        
+                            else:
+                                if q2:
+                                    return cls.download_interactive(q2, download_path0, ftype, fformat)        
+                                else:
+                                    return cls.download_interactive(query, download_path0, ftype, fformat)        
+                        notify('Deez', 'Deez', 'finish', 'All Download Finished !', icon=cls.LOGO, direct_run = True)
+
+                    elif q1 and q1 == 'all' or q1 == 'a':
+                        for ds in disco:
+                            id = ds.get('ALB_ID')
+                            while 1:
+                                try:
+                                    tracks = cls.deezer.get_album_tracks(id)
+                                    break
+                                except:
+                                    pass
+                            download_path = cls.create_download_path(id, download_path0)
+                            cls.download(tracks, fformat = fformat, download_path = download_path)
+
+
+                    elif "-" in q1 or "," in q1:
+                        if "," in q1:
+                            album_numbers = re.split(",", q1)
+                            debug(album_numbers = album_numbers)
+                            album_numbers = list(filter(None, album_numbers))
+                            debug(album_numbers = album_numbers)
+                            for ds in album_numbers:
+                                id = disco[int(ds) - 1].get('ALB_ID')
+                                while 1:
+                                    try:
+                                        tracks = cls.deezer.get_album_tracks(id)
+                                        break
+                                    except:
+                                        pass
+                                download_path = cls.create_download_path(id, download_path0)
+                                cls.download(tracks, fformat = fformat, download_path = download_path)                                
+                        elif "-" in q1:
+                            album_numbers = cls.split_number(q1)
+                            debug(album_numbers = album_numbers)
+                            for ds in album_numbers:
+                                id = disco[int(ds) - 1].get('ALB_ID')
+                                while 1:
+                                    try:
+                                        tracks = cls.deezer.get_album_tracks(id)
+                                        break
+                                    except:
+                                        pass
+                                download_path = cls.create_download_path(id, download_path0)
+                                cls.download(tracks, fformat = fformat, download_path = download_path)                                
                     else:
-                        return cls.download_interactive(q1, download_path, ftype, fformat)
+                        if q1:
+                            return cls.download_interactive(q1, download_path0, ftype, fformat)
+                        else:
+                            return cls.download_interactive(query, download_path0, ftype, fformat)
             else:
-                return cls.download_interactive(q, download_path, ftype, fformat)
-        return cls.download_interactive(query, download_path, ftype, fformat)
+                if q:
+                    return cls.download_interactive(q, download_path0, ftype, fformat)
+                else:
+                    return cls.download_interactive(query, download_path0, ftype, fformat)
+        else:
+            print(make_colors('Not Found !', 'lw', 'lr', ['blink']))
+            sys.exit()
+        return cls.download_interactive(query, download_path0, ftype, fformat)
 
     @classmethod
     def usage(cls):

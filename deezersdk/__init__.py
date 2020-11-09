@@ -3,4 +3,4 @@ from . import exceptions
 from . import constants
 from .Deezer import Deezer
 
-name = "PyDeezer"
+name = "DeezerSDK"
